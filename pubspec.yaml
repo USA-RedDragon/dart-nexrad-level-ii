@@ -1,0 +1,7 @@
+name: nexrad_level_ii
+description: "A package for reading and parsing NEXRAD Level II data files."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.2 <4.0.0'
