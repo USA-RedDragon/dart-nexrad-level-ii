@@ -12,16 +12,12 @@ void main() async {
   stopwatch.start();
   var blob = ByteData.sublistView(file.readAsBytesSync());
   stopwatch.stop();
-  times.addAll({
-    'Read file': stopwatch.elapsedMilliseconds
-  });
+  times.addAll({'Read file': stopwatch.elapsedMilliseconds});
   stopwatch.reset();
   stopwatch.start();
   var header = new NexradVolumeHeader(blob);
   stopwatch.stop();
-  times.addAll({
-    'Parse header': stopwatch.elapsedMilliseconds
-  });
+  times.addAll({'Parse header': stopwatch.elapsedMilliseconds});
   print(header);
   stopwatch.reset();
   stopwatch.start();
@@ -30,11 +26,9 @@ void main() async {
   while (seek < blob.lengthInBytes) {
     var ldm = new NexradLDM(blob, seek);
     ldms.add(ldm);
-    seek += ldm.compressedSize+4;
+    seek += ldm.compressedSize + 4;
   }
-  times.addAll({
-    'Parse LDMs': stopwatch.elapsedMilliseconds
-  });
+  times.addAll({'Parse LDMs': stopwatch.elapsedMilliseconds});
   stopwatch.reset();
   stopwatch.start();
   var datas = List<List<NexradLDMMessage>>.empty(growable: true);
@@ -42,9 +36,7 @@ void main() async {
     final messages = await ldms[i].getMessages();
     datas.add(messages);
   }
-  times.addAll({
-    'Parse all messages': stopwatch.elapsedMilliseconds
-  });
+  times.addAll({'Parse all messages': stopwatch.elapsedMilliseconds});
   stopwatch.reset();
   for (var data in datas) {
     for (var message in data) {
@@ -57,9 +49,7 @@ void main() async {
     }
   }
   stopwatch.stop();
-  times.addAll({
-    'Print all messages': stopwatch.elapsedMilliseconds
-  });
+  times.addAll({'Print all messages': stopwatch.elapsedMilliseconds});
   print(times);
 }
 
@@ -80,16 +70,19 @@ class NexradVolumeHeader {
   final String station;
   final int size;
 
-  NexradVolumeHeader(ByteData blob) : header = new String.fromCharCodes(blob.buffer.asUint8List(0, 3)),
-                                      version = int.parse(new String.fromCharCodes(blob.buffer.asUint8List(4, 4))),
-                                      extension = int.parse(new String.fromCharCodes(blob.buffer.asUint8List(9, 3))),
-                                      date = blob.getUint32(12) - 1,
-                                      time = blob.getUint32(16),
-                                      station = new String.fromCharCodes(blob.buffer.asUint8List(20, 4)),
-                                      size = 24 { }
+  NexradVolumeHeader(ByteData blob)
+      : header = new String.fromCharCodes(blob.buffer.asUint8List(0, 3)),
+        version =
+            int.parse(new String.fromCharCodes(blob.buffer.asUint8List(4, 4))),
+        extension =
+            int.parse(new String.fromCharCodes(blob.buffer.asUint8List(9, 3))),
+        date = blob.getUint32(12) - 1,
+        time = blob.getUint32(16),
+        station = new String.fromCharCodes(blob.buffer.asUint8List(20, 4)),
+        size = 24 {}
 
   DateTime get dateTime {
-    var date = new DateTime.utc(1970, 1, 1+this.date);
+    var date = new DateTime.utc(1970, 1, 1 + this.date);
     return date.add(new Duration(milliseconds: this.time));
   }
 
@@ -97,4 +90,3 @@ class NexradVolumeHeader {
     return 'NexradHeader{header: $header, version: $version, extension: $extension, date: $dateTime, station: $station}';
   }
 }
-
