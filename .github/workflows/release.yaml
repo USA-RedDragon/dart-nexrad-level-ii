@@ -24,7 +24,10 @@ jobs:
       - name: Install Dart dependencies
         run: dart pub get
       - name: Replace pubspec version with tag version
-        run: exit 1
+        run: |
+          export GIT_TAG_SEMVER="${GITHUB_REF_NAME##v}"
+          echo "Setting version to $GIT_TAG_SEMVER"
+          yq ".version = strenv(GIT_TAG_SEMVER)" -i pubspec.yaml
       - name: Generate CHANGELOG.md
         run: exit 1
       - name: Publish
