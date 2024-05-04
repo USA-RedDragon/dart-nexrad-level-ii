@@ -1,0 +1,26 @@
+name: Dart
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Dart
+        uses: dart-lang/setup-dart@v1
+      - name: Install Dart dependencies
+        run: dart pub get
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze project source
+        run: dart analyze --fatal-infos
+      - name: Run tests
+        run: dart test
