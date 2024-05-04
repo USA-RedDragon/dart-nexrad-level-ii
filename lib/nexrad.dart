@@ -8,7 +8,7 @@ import './ldm.dart';
 void main() async {
   final stopwatch = Stopwatch();
   var times = new Map<String, int>();
-  var file = new File('testdata/KTLX20240418_154156_V06');
+  var file = new File('test/data/KTLX20240418_154156_V06');
   stopwatch.start();
   var blob = ByteData.sublistView(file.readAsBytesSync());
   stopwatch.stop();
