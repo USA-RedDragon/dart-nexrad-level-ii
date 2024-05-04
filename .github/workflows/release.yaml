@@ -24,19 +24,35 @@ jobs:
         uses: dart-lang/setup-dart@v1.6.4
       - name: Install Dart dependencies
         run: dart pub get
+      - name: Configure git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
       - name: Replace pubspec version with tag version
         run: |
           export GIT_TAG_SEMVER="${GITHUB_REF_NAME##v}"
           echo "Setting version to $GIT_TAG_SEMVER"
           yq ".version = strenv(GIT_TAG_SEMVER)" -i pubspec.yaml
+      - name: Generate CHANGELOG.md
+        run: |
+          exit 1
+      - name: Push new tag
+        run: |
           git tag -d ${GITHUB_REF_NAME}
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git commit -m "Release $GIT_TAG_SEMVER" pubspec.yaml
+          git commit -m "Release $GIT_TAG_SEMVER" pubspec.yaml CHANGELOG.md
           git tag ${GITHUB_REF_NAME} -m "${GITHUB_REF_NAME}"
           git push -f origin ${GITHUB_REF_NAME}
       - name: Publish
         run: dart pub publish -f
-      - name: Generate CHANGELOG.md
+      - name: Checkout repository @ main
+        uses: actions/checkout@v4.1.4
+        with:
+          ref: main
+          path: main
+      - name: Push CHANGELOG.md to main
         run: |
-          exit 1
+          cp CHANGELOG.md main/CHANGELOG.md
+          cd main
+          git add CHANGELOG.md
+          git commit -m "Release $GIT_TAG_SEMVER" CHANGELOG.md
+          git push origin main --force-with-lease
