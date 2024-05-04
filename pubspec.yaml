@@ -1,10 +1,19 @@
 name: nexrad_level_ii
 description: "A package for reading and parsing NEXRAD Level II data files."
-publish_to: 'none'
-version: 0.1.0
+repository: https://github.com/USA-RedDragon/dart-nexrad-level-ii
+version: 0.0.0 # The release CI job will replace this
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
 
 environment:
   sdk: 3.3.4
 dependencies:
-  archive: 3.5.1
+  archive: ^3.5.1
+dev_dependencies:
   test: 1.25.4
