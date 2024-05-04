@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
+      contents: write
     environment: pub.dev
     steps:
       - name: Checkout repository
@@ -30,7 +31,12 @@ jobs:
           export GIT_TAG_SEMVER="${GITHUB_REF_NAME##v}"
           echo "Setting version to $GIT_TAG_SEMVER"
           yq ".version = strenv(GIT_TAG_SEMVER)" -i pubspec.yaml
-      - name: Generate CHANGELOG.md
-        run: exit 1
+          git tag -d ${GITHUB_REF_NAME}
+          git commit -m "Release $GIT_TAG_SEMVER" pubspec.yaml
+          git tag ${GITHUB_REF_NAME} -m "${GITHUB_REF_NAME}"
+          git push -f origin ${GITHUB_REF_NAME}
       - name: Publish
-        run: dart pub publish -f
+        run: dart pub publish -f --dry-run
+      - name: Generate CHANGELOG.md
+        run: |
+          exit 1
