@@ -36,7 +36,7 @@ jobs:
           git tag ${GITHUB_REF_NAME} -m "${GITHUB_REF_NAME}"
           git push -f origin ${GITHUB_REF_NAME}
       - name: Publish
-        run: dart pub publish -f --dry-run
+        run: dart pub publish --dry-run
       - name: Generate CHANGELOG.md
         run: |
           exit 1
