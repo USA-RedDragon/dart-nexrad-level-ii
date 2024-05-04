@@ -1,4 +1,4 @@
-name: Dart
+name: Test
 
 on:
   push:
@@ -9,7 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
+    name: Test
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
