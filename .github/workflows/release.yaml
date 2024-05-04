@@ -13,6 +13,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+    environment: pub.dev
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.1.4
@@ -20,3 +23,9 @@ jobs:
         uses: dart-lang/setup-dart@v1.6.4
       - name: Install Dart dependencies
         run: dart pub get
+      - name: Replace pubspec version with tag version
+        run: exit 1
+      - name: Generate CHANGELOG.md
+        run: exit 1
+      - name: Publish
+        run: dart pub publish -f
