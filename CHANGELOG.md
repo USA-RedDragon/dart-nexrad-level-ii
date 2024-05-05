@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.4
+
+API reworked to be more flexible and easier to use.
+
 ## 0.0.3
 
 CI publish

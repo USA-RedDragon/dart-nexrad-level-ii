@@ -33,9 +33,9 @@ jobs:
           export GIT_TAG_SEMVER="${GITHUB_REF_NAME##v}"
           echo "Setting version to $GIT_TAG_SEMVER"
           yq ".version = strenv(GIT_TAG_SEMVER)" -i pubspec.yaml
-      - name: Generate CHANGELOG.md
-        run: |
-          exit 1
+      # - name: Generate CHANGELOG.md
+      #   run: |
+      #     exit 1
       - name: Push new tag
         run: |
           git tag -d ${GITHUB_REF_NAME}
