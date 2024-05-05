@@ -44,15 +44,15 @@ jobs:
           git push -f origin ${GITHUB_REF_NAME}
       - name: Publish
         run: dart pub publish -f
-      - name: Checkout repository @ main
-        uses: actions/checkout@v4.1.4
-        with:
-          ref: main
-          path: main
-      - name: Push CHANGELOG.md to main
-        run: |
-          cp CHANGELOG.md main/CHANGELOG.md
-          cd main
-          git add CHANGELOG.md
-          git commit -m "Release $GIT_TAG_SEMVER" CHANGELOG.md
-          git push origin main --force-with-lease
+      # - name: Checkout repository @ main
+      #   uses: actions/checkout@v4.1.4
+      #   with:
+      #     ref: main
+      #     path: main
+      # - name: Push CHANGELOG.md to main
+      #   run: |
+      #     cp CHANGELOG.md main/CHANGELOG.md
+      #     cd main
+      #     git add CHANGELOG.md
+      #     git commit -m "Release $GIT_TAG_SEMVER" CHANGELOG.md
+      #     git push origin main --force-with-lease
