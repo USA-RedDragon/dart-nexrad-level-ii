@@ -39,7 +39,7 @@ jobs:
       - name: Push new tag
         run: |
           git tag -d ${GITHUB_REF_NAME}
-          git commit -m "Release $GIT_TAG_SEMVER" pubspec.yaml CHANGELOG.md
+          git commit -m "Release ${GITHUB_REF_NAME}" pubspec.yaml CHANGELOG.md
           git tag ${GITHUB_REF_NAME} -m "${GITHUB_REF_NAME}"
           git push -f origin ${GITHUB_REF_NAME}
       - name: Publish
