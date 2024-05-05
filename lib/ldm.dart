@@ -8,31 +8,29 @@ const int CTM_HEADER_SIZE = 12;
 const int MESSAGE_SIZE = 2432;
 
 class NexradLDM {
-  final int compressedSize;
   final ByteData blob;
-  final int offset;
+  final int compressedSize;
 
-  NexradLDM(ByteData blob, int offset)
-      : compressedSize = blob.getInt32(offset).abs(),
-        blob = blob,
-        offset = offset {}
+  NexradLDM(ByteData blob)
+      : blob = blob,
+        compressedSize = blob.getInt32(0).abs() {}
 
-  Future<List<NexradLDMMessage>> getMessages() async {
+  Stream<NexradLDMMessage> getMessages() async* {
     var decoder = new BZip2Decoder();
     var bzipped = decoder.decodeBytes(
-        blob.buffer.asUint8List(offset + 4, compressedSize),
+        blob.buffer.asUint8List(blob.offsetInBytes + 4, compressedSize),
         verify: true) as Uint8List;
-    var uncompressed = ByteData.sublistView(bzipped);
+    var uncompressed = ByteData.sublistView(bzipped).asUnmodifiableView();
     var seek = 0;
-    var messages = <NexradLDMMessage>[];
     while (seek < bzipped.length) {
-      var message = new NexradLDMMessage(uncompressed, seek);
+      var message = new NexradLDMMessage(
+          ByteData.view(uncompressed.buffer, seek, MESSAGE_SIZE));
       final hdr = await message.header;
       if (hdr.messageSize == 0) {
         seek += MESSAGE_SIZE;
         continue;
       }
-      messages.add(message);
+      yield message;
       switch (hdr.type) {
         case 31:
         case 29:
@@ -42,7 +40,6 @@ class NexradLDM {
           seek += MESSAGE_SIZE;
       }
     }
-    return messages;
   }
 
   String toString() {
@@ -52,35 +49,37 @@ class NexradLDM {
 
 class NexradLDMMessage {
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage(ByteData blob, int offset)
-      : blob = blob,
-        offset = offset {}
+  NexradLDMMessage(ByteData blob) : blob = blob {}
 
-  Future<NexradLDMHeader> get header async {
-    return new NexradLDMHeader(blob, offset);
+  NexradLDMHeader get header {
+    return new NexradLDMHeader(blob);
   }
 
-  Future<NexradLDMMessageData> get data async {
-    var hdr = await header;
-    switch (hdr.type) {
+  NexradLDMMessageData get data {
+    switch (header.type) {
       case 0:
         break;
       case 2:
-        return new NexradLDMMessage2(hdr, blob, offset);
+        // RDA Status Data
+        return new NexradLDMMessage2(header, blob);
       case 3:
-        return new NexradLDMMessage3(hdr, blob, offset);
+        // RDA Performance/Maintenance Data
+        return new NexradLDMMessage3(header, blob);
       case 5:
-        return new NexradLDMMessage5(hdr, blob, offset);
+        // RDA Volume Coverage Data
+        return new NexradLDMMessage5(header, blob);
       case 15:
-        return new NexradLDMMessage15(hdr, blob, offset);
+        // RDA Clutter Map Data
+        return new NexradLDMMessage15(header, blob);
       case 18:
-        return new NexradLDMMessage18(hdr, blob, offset);
+        // RDA Adaptable Parameters
+        return new NexradLDMMessage18(header, blob);
       case 31:
-        return new NexradLDMMessage31(hdr, blob, offset);
+        // Digital Radar Data Generic Format
+        return new NexradLDMMessage31(header, blob);
     }
-    throw new Exception('Unknown message type: ${hdr.type}');
+    throw new Exception('Unknown message type: ${header.type}');
   }
 
   String toString() {
@@ -100,15 +99,15 @@ class NexradLDMHeader {
   final int numSegments;
   final int segmentNumber;
 
-  NexradLDMHeader(ByteData blob, int offset)
-      : messageSize = blob.getUint16(offset + 12),
-        redundantChannel = blob.getUint8(offset + 14),
-        type = blob.getUint8(offset + 15),
-        seq = blob.getUint16(offset + 16),
-        date = blob.getUint16(offset + 18) - 1,
-        time = blob.getUint32(offset + 20),
-        numSegments = blob.getUint16(offset + 24),
-        segmentNumber = blob.getUint16(offset + 26) {
+  NexradLDMHeader(ByteData blob)
+      : messageSize = blob.getUint16(12),
+        redundantChannel = blob.getUint8(14),
+        type = blob.getUint8(15),
+        seq = blob.getUint16(16),
+        date = blob.getUint16(18) - 1,
+        time = blob.getUint32(20),
+        numSegments = blob.getUint16(24),
+        segmentNumber = blob.getUint16(26) {
     if (messageSize == 65535) {
       // Special case for long messages
       messageSize = numSegments << 16 | segmentNumber + CTM_HEADER_SIZE;
@@ -128,17 +127,15 @@ class NexradLDMHeader {
 final class NexradLDMMessage31 extends NexradLDMMessageData {
   final NexradLDMHeader header;
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage31(NexradLDMHeader header, ByteData blob, int offset)
+  NexradLDMMessage31(NexradLDMHeader header, ByteData blob)
       : header = header,
-        blob = blob,
-        offset = offset {}
+        blob = blob {}
 
-  Future<List<int>> get data async {
+  List<int> get data {
     var size = header.messageSize;
     return new List<int>.generate(
-        size, (i) => blob.getUint16(offset + CTM_HEADER_SIZE + i * 2));
+        size, (i) => blob.getUint16(CTM_HEADER_SIZE + i * 2));
   }
 
   String toString() {
@@ -149,17 +146,15 @@ final class NexradLDMMessage31 extends NexradLDMMessageData {
 final class NexradLDMMessage15 extends NexradLDMMessageData {
   final NexradLDMHeader header;
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage15(NexradLDMHeader header, ByteData blob, int offset)
+  NexradLDMMessage15(NexradLDMHeader header, ByteData blob)
       : header = header,
-        blob = blob,
-        offset = offset {}
+        blob = blob {}
 
-  Future<List<int>> get data async {
+  List<int> get data {
     var size = header.messageSize;
     return new List<int>.generate(
-        size, (i) => blob.getUint16(offset + CTM_HEADER_SIZE + i * 2));
+        size, (i) => blob.getUint16(CTM_HEADER_SIZE + i * 2));
   }
 
   String toString() {
@@ -170,17 +165,15 @@ final class NexradLDMMessage15 extends NexradLDMMessageData {
 final class NexradLDMMessage18 extends NexradLDMMessageData {
   final NexradLDMHeader header;
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage18(NexradLDMHeader header, ByteData blob, int offset)
+  NexradLDMMessage18(NexradLDMHeader header, ByteData blob)
       : header = header,
-        blob = blob,
-        offset = offset {}
+        blob = blob {}
 
-  Future<List<int>> get data async {
+  List<int> get data {
     var size = header.messageSize;
     return new List<int>.generate(
-        size, (i) => blob.getUint16(offset + CTM_HEADER_SIZE + i * 2));
+        size, (i) => blob.getUint16(CTM_HEADER_SIZE + i * 2));
   }
 
   String toString() {
@@ -191,17 +184,15 @@ final class NexradLDMMessage18 extends NexradLDMMessageData {
 final class NexradLDMMessage2 extends NexradLDMMessageData {
   final NexradLDMHeader header;
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage2(NexradLDMHeader header, ByteData blob, int offset)
+  NexradLDMMessage2(NexradLDMHeader header, ByteData blob)
       : header = header,
-        blob = blob,
-        offset = offset {}
+        blob = blob {}
 
-  Future<List<int>> get data async {
+  List<int> get data {
     var size = header.messageSize;
     return new List<int>.generate(
-        size, (i) => blob.getUint16(offset + CTM_HEADER_SIZE + i * 2));
+        size, (i) => blob.getUint16(CTM_HEADER_SIZE + i * 2));
   }
 
   String toString() {
@@ -212,17 +203,15 @@ final class NexradLDMMessage2 extends NexradLDMMessageData {
 final class NexradLDMMessage3 extends NexradLDMMessageData {
   final NexradLDMHeader header;
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage3(NexradLDMHeader header, ByteData blob, int offset)
+  NexradLDMMessage3(NexradLDMHeader header, ByteData blob)
       : header = header,
-        blob = blob,
-        offset = offset {}
+        blob = blob {}
 
-  Future<List<int>> get data async {
+  List<int> get data {
     var size = header.messageSize;
     return new List<int>.generate(
-        size, (i) => blob.getUint16(offset + CTM_HEADER_SIZE + i * 2));
+        size, (i) => blob.getUint16(CTM_HEADER_SIZE + i * 2));
   }
 
   String toString() {
@@ -233,17 +222,15 @@ final class NexradLDMMessage3 extends NexradLDMMessageData {
 final class NexradLDMMessage5 extends NexradLDMMessageData {
   final NexradLDMHeader header;
   final ByteData blob;
-  final int offset;
 
-  NexradLDMMessage5(NexradLDMHeader header, ByteData blob, int offset)
+  NexradLDMMessage5(NexradLDMHeader header, ByteData blob)
       : header = header,
-        blob = blob,
-        offset = offset {}
+        blob = blob {}
 
-  Future<List<int>> get data async {
+  List<int> get data {
     var size = header.messageSize;
     return new List<int>.generate(
-        size, (i) => blob.getUint16(offset + CTM_HEADER_SIZE + i * 2));
+        size, (i) => blob.getUint16(CTM_HEADER_SIZE + i * 2));
   }
 
   String toString() {

@@ -5,52 +5,35 @@ import 'dart:typed_data';
 
 import './ldm.dart';
 
-void main() async {
-  final stopwatch = Stopwatch();
-  var times = new Map<String, int>();
-  var file = new File('test/data/KTLX20240418_154156_V06');
-  stopwatch.start();
-  var blob = ByteData.sublistView(file.readAsBytesSync());
-  stopwatch.stop();
-  times.addAll({'Read file': stopwatch.elapsedMilliseconds});
-  stopwatch.reset();
-  stopwatch.start();
-  var header = new NexradVolumeHeader(blob);
-  stopwatch.stop();
-  times.addAll({'Parse header': stopwatch.elapsedMilliseconds});
-  print(header);
-  stopwatch.reset();
-  stopwatch.start();
-  var seek = header.size;
-  var ldms = <NexradLDM>[];
-  while (seek < blob.lengthInBytes) {
-    var ldm = new NexradLDM(blob, seek);
-    ldms.add(ldm);
-    seek += ldm.compressedSize + 4;
+class Archive2 {
+  final ByteData blob;
+
+  Archive2(ByteData blob) : blob = blob.asUnmodifiableView() {}
+  Archive2.fromFile(File file)
+      : blob =
+            ByteData.sublistView(file.readAsBytesSync()).asUnmodifiableView() {}
+  Archive2.fromBytes(Uint8List bytes)
+      : blob = ByteData.sublistView(bytes).asUnmodifiableView() {}
+  Archive2.fromPath(String path)
+      : blob = ByteData.sublistView(File(path).readAsBytesSync())
+            .asUnmodifiableView() {}
+
+  NexradVolumeHeader get header {
+    return new NexradVolumeHeader(
+        ByteData.view(blob.buffer, 0, NexradVolumeHeader.HEADER_SIZE)
+            .asUnmodifiableView());
   }
-  times.addAll({'Parse LDMs': stopwatch.elapsedMilliseconds});
-  stopwatch.reset();
-  stopwatch.start();
-  var datas = List<List<NexradLDMMessage>>.empty(growable: true);
-  for (var i = 0; i < ldms.length; i++) {
-    final messages = await ldms[i].getMessages();
-    datas.add(messages);
-  }
-  times.addAll({'Parse all messages': stopwatch.elapsedMilliseconds});
-  stopwatch.reset();
-  for (var data in datas) {
-    for (var message in data) {
-      var hdr = await message.header;
-      var data = await message.data;
-      stopwatch.stop();
-      print(hdr);
-      print(data);
-      stopwatch.start();
+
+  Stream<NexradLDM> get data async* {
+    var seek = NexradVolumeHeader.HEADER_SIZE;
+    while (seek < blob.lengthInBytes) {
+      final ldm = new NexradLDM(
+          ByteData.view(blob.buffer, seek, blob.getInt32(seek).abs())
+              .asUnmodifiableView());
+      yield ldm;
+      seek += 4 + ldm.compressedSize;
     }
   }
-  stopwatch.stop();
-  times.addAll({'Print all messages': stopwatch.elapsedMilliseconds});
-  print(times);
 }
 
 // NEXRAD Level II file header
@@ -68,7 +51,8 @@ class NexradVolumeHeader {
   final int date;
   final int time;
   final String station;
-  final int size;
+
+  static const HEADER_SIZE = 24;
 
   NexradVolumeHeader(ByteData blob)
       : header = new String.fromCharCodes(blob.buffer.asUint8List(0, 3)),
@@ -78,8 +62,7 @@ class NexradVolumeHeader {
             int.parse(new String.fromCharCodes(blob.buffer.asUint8List(9, 3))),
         date = blob.getUint32(12) - 1,
         time = blob.getUint32(16),
-        station = new String.fromCharCodes(blob.buffer.asUint8List(20, 4)),
-        size = 24 {}
+        station = new String.fromCharCodes(blob.buffer.asUint8List(20, 4)) {}
 
   DateTime get dateTime {
     var date = new DateTime.utc(1970, 1, 1 + this.date);
