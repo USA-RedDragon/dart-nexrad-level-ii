@@ -14,6 +14,6 @@ platforms:
 environment:
   sdk: 3.4.0
 dependencies:
-  archive: ^3.5.1
+  archive: ^3.6.0
 dev_dependencies:
   test: 1.25.5
