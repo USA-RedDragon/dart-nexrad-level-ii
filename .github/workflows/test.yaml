@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.0
+        uses: actions/checkout@v4.2.2
       - name: Install Dart
         uses: dart-lang/setup-dart@v1.6.5
       - name: Install Dart dependencies
