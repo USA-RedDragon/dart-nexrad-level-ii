@@ -19,7 +19,7 @@ jobs:
     environment: pub.dev
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Dart
         uses: dart-lang/setup-dart@v1.7.0
       - name: Install Dart dependencies
